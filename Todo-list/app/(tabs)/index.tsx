@@ -1,10 +1,28 @@
-import { Pressable, StyleSheet,Text,TextInput,View,FlatList,Modal } from "react-native";
+import { Pressable, StyleSheet,Text,TextInput,View,FlatList,Modal,Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { useState,useEffect  } from "react";
+
+interface Task {
+  id:string;
+  text:string;
+  time:string;
+  completed:boolean;
+}
+
+const STORAGE_KEY='@todo_tasks'
 
 export default function HomeScreen() {
+
+  const [tasks,setTasks]=useState<Task[]>([]);
+  const [inputText,setinputText]=useState('');
+
+  //Time picker states
+  const [selectedTime,setSelectedTime]=useState<Date>(new Date());
+  const [showPicker,setShowPicker]=useState<boolean>(false)
+
   return (
     <SafeAreaView>
 
@@ -53,7 +71,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Modal for edit  */}
-      <Modal  animationType="fade">
+      <Modal  animationType="fade" transparent visible={false}>
         <View style={styles.Modal}>
           <View style={styles.ModalContent}>
               <Text style={styles.heading}>Edit Task</Text>
