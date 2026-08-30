@@ -6,11 +6,9 @@ TaskFlow is a clean, lightweight React Native mobile application designed for pe
 
 ## 📸 App Screenshots
 
-| Home Screen | Time Picker | Edit Modal |
-| :---: | :---: | :---: |
-| ![Home Screen](./assets/screenshots/home.png) | ![Time Picker](./assets/screenshots/picker.png) | ![Edit Task Modal](./assets/screenshots/edit.png) |
-
-> *Replace the image paths above (`./assets/screenshots/...`) with your actual screenshot paths.*
+| Home Screen | Task Added | Task Completed | Edit Modal |
+| :---: | :---: | :---: | :---: |
+| ![Home Screen](./assets/screenshots/home.png) | ![Task Added](./assets/screenshots/task-added.png) | ![Task Completed](./assets/screenshots/picker.png) | ![Edit Task Modal](./assets/screenshots/edit.png) |
 
 ---
 
@@ -51,3 +49,42 @@ Follow these steps to get the project running locally on your device or emulator
    ```bash
    git clone [https://github.com/your-username/taskflow.git](https://github.com/your-username/taskflow.git)
    cd taskflow
+
+```
+
+2. Install dependencies:
+Bash
+
+```
+npm install
+
+```
+
+3. Start the development server:
+Bash
+
+```
+npx expo start
+
+```
+
+4. Run on device/emulator:
+   * Scan the terminal QR code using your phone camera (iOS) or inside the Expo Go app (Android).
+   * Press `a` for Android Emulator or `i` for iOS Simulator in the terminal.
+
+📁 Project Structure
+Plaintext
+
+```
+TaskFlow/
+├── assets/            # App icons, splash screens, and screenshots
+├── screens/
+│   └── HomeScreen.tsx # Core TaskFlow app view, state, and UI logic
+├── App.tsx            # Main application entry point
+├── package.json       # Project dependencies and scripts
+└── README.md          # Project documentation
+
+```
+
+📄 License
+This project is open-source and available under the [MIT License](https://www.google.com/search?q=LICENSE).
