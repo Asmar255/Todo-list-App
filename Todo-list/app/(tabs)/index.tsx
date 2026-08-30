@@ -1,109 +1,115 @@
-import { Pressable, StyleSheet,Text,TextInput,View,FlatList,Modal,Platform } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View, FlatList, Modal, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { useState,useEffect  } from "react";
+import { useState, useEffect } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Task {
-  id:string;
-  text:string;
-  time:string;
-  completed:boolean;
+  id: string;
+  text: string;
+  time: string;
+  completed: boolean;
 }
 
-const STORAGE_KEY='@todo_tasks'
+const STORAGE_KEY = '@todo_tasks'
 
 export default function HomeScreen() {
 
-  const [tasks,setTasks]=useState<Task[]>([]);
-  const [inputText,setinputText]=useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [inputText, setinputText] = useState('');
 
   //Time picker states
-  const [selectedTime,setSelectedTime]=useState<Date>(new Date());
-  const [showPicker,setShowPicker]=useState<boolean>(false)
+  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
+  const [showPicker, setShowPicker] = useState<boolean>(false)
 
   //Modal edit 
-  const [editTime,setEditTime]=useState <Date>(new Date());
-  const [editingTask,setEditingTask]=useState <Task  | null>(null);
-  const [editText,setEditText]=useState('');
-  const [showEditPicker,setShowEditPicker]=useState<boolean>(false);
+  const [editTime, setEditTime] = useState<Date>(new Date());
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editText, setEditText] = useState('');
+  const [showEditPicker, setShowEditPicker] = useState<boolean>(false);
 
   //saving the tasks
-  const saveTasks = async (tasksToSave:Task[])=>{
-      try{
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksToSave));
-      }catch(error){
-          console.log('Error in saving the task ',error)
-      }
+  const saveTasks = async (tasksToSave: Task[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksToSave));
+    } catch (error) {
+      console.log('Error in saving the task ', error)
+    }
   }
 
   //loading the tasks
-  const loadTasks = async ()=>{
-    try{
+  const loadTasks = async () => {
+    try {
       const storedTasks = await AsyncStorage.getItem(STORAGE_KEY)
-      if(storedTasks !== null){
-        setTasks=(JSON.parse(storedTasks))
+      if (storedTasks !== null) {
+        setTasks(JSON.parse(storedTasks))
       }
-    } catch(error){
+    } catch (error) {
       console.log('error loading the task ', error)
     }
   }
 
   //useEffects for load and save 
-  useEffect(()=>{
+  useEffect(() => {
     loadTasks();
-  },[])
-  useEffect(()=>{
+  }, [])
+  useEffect(() => {
     saveTasks(tasks);
-  },[tasks])
+  }, [tasks])
 
   //time fucntions
-  const formatTime=(date:Date):string =>{
-    return date.toLocaleDateString([],{hour:'2-digit',minute:'2-digit'})
+  const formatTime = (date: Date): string => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
   //Add task function
-  const addTask=()=>{
-    if(inputText == null) return;
-    const newTask:Task = {
-        id: Date.now().toString(),
-        text:inputText,
-        time:formatTime(selectedTime),
-        completed:false
+  const addTask = () => {
+    if (!inputText.trim()) return;
+    const newTask: Task = {
+      id: Date.now().toString(),
+      text: inputText,
+      time: formatTime(selectedTime),
+      completed: false
     }
-    setTasks([...tasks,newTask])
+    setTasks([...tasks, newTask])
     setSelectedTime(new Date())
     setinputText('')
   }
 
   //completed task fucntion
-  const toggleTask=(id:string){
+  const toggleTask = (id: string) => {
     setTasks(
-      tasks.map((task)=>
-      task.id===id ? {...task, completed: !task.completed}: task
+      tasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
       )
     )
   }
 
   //Delete task function
-  const deleteTask=(id:string)=>{
-      setTasks(tasks.filter((task)=> task.id !== id))
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter((task) => task.id !== id))
   }
 
   //Edditing fucntions
-  const startEditing=(task:Task)=>{
-      setEditingTask(task)
-      setEditText(task.text)
-      setEditTime(new Date())
+  const startEditing = (task: Task) => {
+    setEditingTask(task)
+    setEditText(task.text)
+    const [timeStr, modifier] = task.time.split(' ');
+      let [hours, minutes] = timeStr.split(':').map(Number);
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      const parsedDate = new Date();
+      parsedDate.setHours(hours, minutes, 0, 0);
+      setEditTime(parsedDate);
   }
 
-  const saveEdit=()=>{
-    if(editingTask){
+  const saveEdit = () => {
+    if (editingTask && editText.trim()) {
       setTasks(
-        tasks.map((task)=>
-          task.id === editingTask.id ? {...task, text:editText,time:formatTime(editTime)}:task
+        tasks.map((task) =>
+          task.id === editingTask.id ? { ...task, text: editText, time: formatTime(editTime) } : task
         )
       )
       setEditingTask(null)
@@ -112,7 +118,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView>
+    <SafeAreaView style={styles.container}>
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -122,63 +128,164 @@ export default function HomeScreen() {
       {/* Input Section  */}
       <View style={styles.inputConatiner}>
         <TextInput
-        style={styles.input}
-        placeholder="Add new task..."
-        placeholderTextColor="#888"
+          style={styles.input}
+          placeholder="Add new task..."
+          placeholderTextColor="#888"
+          value={inputText}
+          onChangeText={setinputText}
         />
 
-        <Pressable style={styles.TimePicker}>
-          <Text>hello</Text>
+        <Pressable style={({ pressed }) => [
+          styles.TimePicker, { opacity: pressed ? 0.7 : 1 }
+        ]}
+        onPress={() => setShowPicker(true)}
+        >
+          <Text>🕒 {formatTime(selectedTime)}</Text>
         </Pressable>
 
-        <Pressable style={styles.plusBtn}>
+        <Pressable style={({ pressed }) => [
+          styles.plusBtn, { opacity: pressed ? 0.7 : 1 }
+        ]}
+          onPress={addTask}
+        >
           <Text style={styles.plusBtnText}>+</Text>
         </Pressable>
       </View>
 
+      {/* Time picker for the add task part  */}
+      {showPicker &&
+        <DateTimePicker
+          value={selectedTime}
+          mode="time"
+          is24Hour={false}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, date) => {
+            if (Platform.OS === 'android') {
+              setShowPicker(false); // Closes on Android
+            }
+            if (date) {
+              setSelectedTime(date);
+            }
+          }}
+        />
+      }
+
       {/* FlatList Section  */}
-      <View style={styles.cardContainer}>
-          <Pressable>
-            <AntDesign name="check-circle" size={24} color="black" />       
-          </Pressable>
 
-          <View style={styles.Todotxtpart}>
-            <Text style={styles.todoTxt}>hello</Text>
-            <Text style={styles.todoTxt}>🕒 17:24</Text>
-          </View>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={[styles.cardContainer, item.completed ? styles.cardCompleted : styles.cardActive]}>
 
-          <View style={styles.actionBtn}>
-            <Pressable>
-              <Ionicons name="create-outline" size={20} color="#BC8F8F" />
-            </Pressable>
-            <Pressable>
-              <Ionicons name="trash-outline" size={20} color="#BC8F8F" />
-            </Pressable>
-          </View>
-
-      </View>
-
-      {/* Modal for edit  */}
-      <Modal  animationType="fade" transparent visible={false}>
-        <View style={styles.Modal}>
-          <View style={styles.ModalContent}>
-              <Text style={styles.heading}>Edit Task</Text>
-
-              <Text style={styles.subHeading}>Task Name</Text>
-              <TextInput
-              style={styles.inputModal}
-              
+            <Pressable
+              onPress={() => toggleTask(item.id)}
+              style={({ pressed }) => [
+                styles.checkboxContainer,
+                { opacity: pressed ? 0.6 : 1.0 },
+              ]}
+            >
+              <Ionicons
+                name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                size={24}
+                color={item.completed ? '#888888' : '#FFFFFF'}
               />
+            </Pressable>
 
-              <Text style={styles.subHeading}>Time</Text>
-              <Pressable>
-                <Text style={styles.textTime}>🕒</Text>
+
+            <View style={styles.taskTextContainer}>
+              <Text
+                style={[
+                  styles.cardText,
+                  item.completed && styles.cardTextCompleted,
+                ]}
+              >
+                {item.text}
+              </Text>
+              <Text
+                style={[
+                  styles.timeText,
+                  item.completed && styles.timeTextCompleted,
+                ]}
+              >
+                🕒 {item.time}
+              </Text>
+            </View>
+
+            <View style={styles.actionBtn}>
+              <Pressable
+                onPress={() => startEditing(item)}
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.5 : 1.0 },
+                ]}
+              >
+                <Ionicons name="create-outline" size={20} color="#BC8F8F" />
               </Pressable>
 
-              <View style={styles.modalBtnContainer}>
+              <Pressable
+                onPress={() => deleteTask(item.id)}
+                style={({ pressed }) => [
+                  { opacity: pressed ? 0.5 : 1.0 },
+                ]}
+              >
+                <Ionicons name="trash-outline" size={20} color="#BC8F8F" />
+              </Pressable>
+            </View>
+
+          </View>
+        )}
+      />
+
+      {/* Modal for edit  */}
+      <Modal visible={editingTask !== null} transparent animationType="fade">
+        <View style={styles.Modal}>
+          <View style={styles.ModalContent}>
+            <Text style={styles.heading}>Edit Task</Text>
+
+            <Text style={styles.subHeading}>Task Name</Text>
+            <TextInput
+              style={styles.inputModal}
+              value={editText}
+              onChangeText={setEditText}
+            />
+
+            <Text style={styles.subHeading}>Time</Text>
+            <Pressable
+              onPress={() => setShowEditPicker(true)}
+            >
+              <Text style={styles.textTime}>🕒 {formatTime(editTime)}</Text>
+            </Pressable>
+
+            {showEditPicker &&
+              <DateTimePicker
+                value={editTime}
+                mode="time"
+                is24Hour={false}
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, date) => {
+                  if (Platform.OS === 'android') {
+                    setShowEditPicker(false); // Closes on Android
+                  }
+                  if (date) {
+                    setEditTime(date);
+                  }
+                }}
+              />
+            }
+
+            <View style={styles.modalBtnContainer}>
+              <Pressable
+                onPress={() => setEditingTask(null)}
+              >
                 <Text style={styles.modalBtnCancel}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={saveEdit}
+              >
                 <Text style={styles.modalBtn}>Save</Text>
-              </View>
+              </Pressable>
+            </View>
 
           </View>
 
@@ -189,123 +296,157 @@ export default function HomeScreen() {
   );
 }
 
-const styles=StyleSheet.create({
-  // Header
-  header:{
-    alignItems:'center',
-    backgroundColor:'#2F4F4F'
+const styles = StyleSheet.create({
+  container:{
+    flex:1,
+    backgroundColor:'#F5F5F5'
   },
-  headerText:{
-    color:'#fff',
-    fontSize:30,
-    fontWeight:'bold',
-    padding:20,
+  // Header
+  header: {
+    alignItems: 'center',
+    backgroundColor: '#2F4F4F'
+  },
+  headerText: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: 'bold',
+    padding: 20,
   },
 
   //input section
-  inputConatiner:{
-    flexDirection:'row',
-    alignItems:'center',
-    gap:6,
+  inputConatiner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     padding: 12,
   },
-  input:{
-    flex:2,
-    borderColor:'##CCC',
-    borderWidth:1,
-    borderRadius:12,
+  input: {
+    flex: 2,
+    borderColor: '#CCC',
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  TimePicker:{
-    backgroundColor:'#bfb0b0',
-    padding:13,
-    borderRadius:12,
+  TimePicker: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CCC',
   },
-  plusBtn:{
-    backgroundColor:'#7D5252',
-    padding:10,
-    borderRadius:10,
-    color:'#fff',
-    alignItems:'center',
-    width:50,
+  plusBtn: {
+    backgroundColor: '#7D5252',
+    padding: 10,
+    borderRadius: 10,
+    color: '#fff',
+    alignItems: 'center',
+    width: 50,
   },
-  plusBtnText:{
-      color:'#fff',
-      fontWeight:'bold',
-      fontSize:25,
-      margin:'auto',
+  plusBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 25,
+    lineHeight: 24,
   },
 
   //Cards section
-  cardContainer:{
-    flexDirection:'row',
-    backgroundColor:'#2F4F4F',
-    marginHorizontal:10,
-    marginVertical:10,
-    padding:16,
-    borderRadius:10,
-    alignItems:'center',
-    gap:20,
+  cardContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#2F4F4F',
+    marginHorizontal: 10,
+    marginVertical: 10,
+    padding: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    gap: 20,
   },
-  Todotxtpart:{
-    flex:1,
+  cardActive: {
+    backgroundColor: '#1E3E3B',
   },
-  todoTxt:{
-    color:'#fff'
+  cardCompleted: {
+    backgroundColor: '#dae0e0',
   },
-  actionBtn:{
-    flexDirection:'row',
-    justifyContent:'flex-end',
-    gap:10,
-    marginLeft:120,
+  checkboxContainer: {
+    marginRight: 12,
+  },
+  taskTextContainer: {
+    flex: 1,
+  },
+  cardText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  cardTextCompleted: {
+    color: '#888888',
+    textDecorationLine: 'line-through',
+  },
+  timeText: {
+    color: '#A2C2C0',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  timeTextCompleted: {
+    color: '#AAA',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  actionButton: {
+    marginLeft: 12,
+    padding: 4,
   },
 
   //Modal 
-  Modal:{
-    flex:1,
-    backgroundColor:'#00000080',
-    justifyContent:'center',
-    padding:10,
+  Modal: {
+    flex: 1,
+    backgroundColor: '#00000080',
+    justifyContent: 'center',
+    padding: 10,
   },
-  ModalContent:{
-    backgroundColor:'#fff',
-    borderRadius:10,
-    padding:20,
+  ModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
   },
-  heading:{
-    color:'#000',
-    fontWeight:'bold',
-    fontSize:25,
+  heading: {
+    color: '#000',
+    fontWeight: 'bold',
+    fontSize: 25,
   },
-  subHeading:{
-    marginTop:17,
-    fontSize:14,
-    marginBottom:3,
+  subHeading: {
+    marginTop: 17,
+    fontSize: 14,
+    marginBottom: 3,
   },
-  inputModal:{
-    borderWidth:1,
-    borderRadius:5,
+  inputModal: {
+    borderWidth: 1,
+    borderRadius: 5,
   },
-  textTime:{
-      borderWidth:1,
-      padding:10,
-      borderRadius:5,
+  textTime: {
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
   },
-  modalBtnContainer:{
-    flexDirection:'row',
-    justifyContent:'flex-end',
-    gap:10,
-    marginTop:10,
+  modalBtnContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 10,
   },
-  modalBtn:{
-    backgroundColor:'#2F4F4F',
-    padding:10,
-    borderRadius:10,
-    color:'#fff',
-    fontWeight:'bold'
+  modalBtn: {
+    backgroundColor: '#2F4F4F',
+    padding: 10,
+    borderRadius: 10,
+    color: '#fff',
+    fontWeight: 'bold'
   },
-  modalBtnCancel:{
-    padding:10,
-    borderRadius:10,
-    fontWeight:'bold'
+  modalBtnCancel: {
+    padding: 10,
+    borderRadius: 10,
+    fontWeight: 'bold'
   },
 })
