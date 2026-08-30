@@ -8,7 +8,7 @@ TaskFlow is a clean, lightweight React Native mobile application designed for pe
 
 | Home Screen | Task Added | Task Completed | Edit Modal |
 | :---: | :---: | :---: | :---: |
-| ![Home Screen](./assets/screenshots/home.png) | ![Task Added](./assets/screenshots/task-added.png) | ![Task Completed](./assets/screenshots/picker.png) | ![Edit Task Modal](./assets/screenshots/edit.png) |
+| ![Home Screen](./Todo-list/assets/images/HomeScreen.jpeg) | ![Task Added](./Todo-list/assets/images/Task%20Added.jpeg) | ![Task Completed](./Todo-list/assets/images/Task%20Completed.jpeg) | ![Edit Task Modal](./Todo-list/assets/images/Edit%20Modal.jpeg) |
 
 ---
 
