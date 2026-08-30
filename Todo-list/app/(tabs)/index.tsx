@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState,useEffect  } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Task {
   id:string;
@@ -22,6 +23,93 @@ export default function HomeScreen() {
   //Time picker states
   const [selectedTime,setSelectedTime]=useState<Date>(new Date());
   const [showPicker,setShowPicker]=useState<boolean>(false)
+
+  //Modal edit 
+  const [editTime,setEditTime]=useState <Date>(new Date());
+  const [editingTask,setEditingTask]=useState <Task  | null>(null);
+  const [editText,setEditText]=useState('');
+  const [showEditPicker,setShowEditPicker]=useState<boolean>(false);
+
+  //saving the tasks
+  const saveTasks = async (tasksToSave:Task[])=>{
+      try{
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksToSave));
+      }catch(error){
+          console.log('Error in saving the task ',error)
+      }
+  }
+
+  //loading the tasks
+  const loadTasks = async ()=>{
+    try{
+      const storedTasks = await AsyncStorage.getItem(STORAGE_KEY)
+      if(storedTasks !== null){
+        setTasks=(JSON.parse(storedTasks))
+      }
+    } catch(error){
+      console.log('error loading the task ', error)
+    }
+  }
+
+  //useEffects for load and save 
+  useEffect(()=>{
+    loadTasks();
+  },[])
+  useEffect(()=>{
+    saveTasks(tasks);
+  },[tasks])
+
+  //time fucntions
+  const formatTime=(date:Date):string =>{
+    return date.toLocaleDateString([],{hour:'2-digit',minute:'2-digit'})
+  }
+
+  //Add task function
+  const addTask=()=>{
+    if(inputText == null) return;
+    const newTask:Task = {
+        id: Date.now().toString(),
+        text:inputText,
+        time:formatTime(selectedTime),
+        completed:false
+    }
+    setTasks([...tasks,newTask])
+    setSelectedTime(new Date())
+    setinputText('')
+  }
+
+  //completed task fucntion
+  const toggleTask=(id:string){
+    setTasks(
+      tasks.map((task)=>
+      task.id===id ? {...task, completed: !task.completed}: task
+      )
+    )
+  }
+
+  //Delete task function
+  const deleteTask=(id:string)=>{
+      setTasks(tasks.filter((task)=> task.id !== id))
+  }
+
+  //Edditing fucntions
+  const startEditing=(task:Task)=>{
+      setEditingTask(task)
+      setEditText(task.text)
+      setEditTime(new Date())
+  }
+
+  const saveEdit=()=>{
+    if(editingTask){
+      setTasks(
+        tasks.map((task)=>
+          task.id === editingTask.id ? {...task, text:editText,time:formatTime(editTime)}:task
+        )
+      )
+      setEditingTask(null)
+      setEditText('')
+    }
+  }
 
   return (
     <SafeAreaView>
