@@ -158,7 +158,7 @@ export default function HomeScreen() {
           value={selectedTime}
           mode="time"
           is24Hour={false}
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          display="default"
           onChange={(event, date) => {
             if (Platform.OS === 'android') {
               setShowPicker(false); // Closes on Android
@@ -261,7 +261,7 @@ export default function HomeScreen() {
                 value={editTime}
                 mode="time"
                 is24Hour={false}
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                display="default"
                 onChange={(event, date) => {
                   if (Platform.OS === 'android') {
                     setShowEditPicker(false); // Closes on Android
