@@ -16,7 +16,7 @@ TaskFlow is a clean, lightweight React Native mobile application designed for pe
 
 - ➕ **Task Creation:** Quickly add tasks with custom text and scheduled times.
 - 🕒 **Integrated Time Picker:** Set exact times for tasks using `@react-native-community/datetimepicker`.
-- 💾 **Local Data Persistence:** Keeps tasks saved across app restarts using `@react-native-async-storage/async-storage`.
+- 💾 **Real-Time Cloud Storage**: Integrated Firebase Firestore for live database syncing and persistent cloud storage across user sessions.
 - ✏️ **In-App Editing:** Update task details and scheduled times through a custom pop-up modal.
 - ✅ **Task Completion:** Toggle task completion status with interactive checkmarks and strike-through visual feedback.
 - 🗑️ **Task Deletion:** Remove completed or obsolete tasks from your schedule.
