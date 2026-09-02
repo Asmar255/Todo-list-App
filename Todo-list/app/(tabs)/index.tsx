@@ -2,18 +2,18 @@ import { Pressable, StyleSheet, Text, TextInput, View, FlatList, Modal, Platform
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import AntDesign from '@expo/vector-icons/AntDesign';
 import { useState, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { db } from "@/firebaseConfig";
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy} from "firebase/firestore"; 
+  
 
 interface Task {
   id: string;
   text: string;
   time: string;
   completed: boolean;
+  createdAt?:number;
 }
-
-const STORAGE_KEY = '@todo_tasks'
 
 export default function HomeScreen() {
 
@@ -21,7 +21,17 @@ export default function HomeScreen() {
   const [inputText, setinputText] = useState('');
 
   //Time picker states
-  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
+  
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [customTime, setCustomTime] = useState<Date | null>(null);
+  const displayTime = customTime || currentTime;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
   const [showPicker, setShowPicker] = useState<boolean>(false)
 
   //Modal edit 
@@ -30,34 +40,26 @@ export default function HomeScreen() {
   const [editText, setEditText] = useState('');
   const [showEditPicker, setShowEditPicker] = useState<boolean>(false);
 
-  //saving the tasks
-  const saveTasks = async (tasksToSave: Task[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(tasksToSave));
-    } catch (error) {
-      console.log('Error in saving the task ', error)
-    }
-  }
-
-  //loading the tasks
-  const loadTasks = async () => {
-    try {
-      const storedTasks = await AsyncStorage.getItem(STORAGE_KEY)
-      if (storedTasks !== null) {
-        setTasks(JSON.parse(storedTasks))
-      }
-    } catch (error) {
-      console.log('error loading the task ', error)
-    }
-  }
 
   //useEffects for load and save 
-  useEffect(() => {
-    loadTasks();
-  }, [])
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks])
+ useEffect(() => {
+    const tasksRef = collection(db, "tasks");
+    const q = query(tasksRef, orderBy("createdAt", "desc"));
+
+    // Listens for live updates in the Firestore database
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedTasks: Task[] = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Task, 'id'>),
+      }));
+      setTasks(fetchedTasks);
+    }, (error) => {
+      console.log("Error reading tasks from Firestore:", error);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
 
   //time fucntions
   const formatTime = (date: Date): string => {
@@ -65,31 +67,44 @@ export default function HomeScreen() {
   }
 
   //Add task function
-  const addTask = () => {
+  const addTask = async() => {
     if (!inputText.trim()) return;
-    const newTask: Task = {
-      id: Date.now().toString(),
-      text: inputText,
-      time: formatTime(selectedTime),
-      completed: false
-    }
-    setTasks([...tasks, newTask])
-    setSelectedTime(new Date())
     setinputText('')
+    try{
+      await addDoc(collection(db,"tasks"),{
+      text: inputText,
+      time: formatTime(displayTime),
+      completed: false,
+      createdAt:Date.now()
+      })
+      setCustomTime(null)
+    }
+    catch (error){
+        console.log("Error adding task", error);
+    }
   }
 
   //completed task fucntion
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    )
+  const toggleTask = async(id:string,currentStatus:boolean)=>{
+    try{
+       const taskRef=doc(db,"tasks",id);
+       await updateDoc(taskRef,{
+        completed:!currentStatus
+       })
+    }
+    catch (error){
+      console.log("error toggling the task status", error)
+    }
   }
 
   //Delete task function
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id))
+  const deleteTask = async(id:string)=>{
+    try{
+      await deleteDoc(doc(db,"tasks",id));
+    }
+    catch(error){
+      console.log("Error deleeting task",error)
+    }
   }
 
   //Edditing fucntions
@@ -105,16 +120,22 @@ export default function HomeScreen() {
       setEditTime(parsedDate);
   }
 
-  const saveEdit = () => {
-    if (editingTask && editText.trim()) {
-      setTasks(
-        tasks.map((task) =>
-          task.id === editingTask.id ? { ...task, text: editText, time: formatTime(editTime) } : task
-        )
-      )
-      setEditingTask(null)
-      setEditText('')
-    }
+  //saving the editing task 
+  const saveEdit = async()=>{
+      if(editingTask && editText.trim()){
+        setEditingTask(null);
+          setEditText('')
+        try{
+          const taskRef=doc(db,"tasks",editingTask.id);
+          await updateDoc(taskRef,{
+              text:editText,
+              time:formatTime(editTime)
+          })
+        }
+        catch(error){
+        console.log("error saving the task ",error)
+        }
+      }
   }
 
   return (
@@ -140,7 +161,7 @@ export default function HomeScreen() {
         ]}
         onPress={() => setShowPicker(true)}
         >
-          <Text>🕒 {formatTime(selectedTime)}</Text>
+          <Text>🕒 {formatTime(displayTime)}</Text>
         </Pressable>
 
         <Pressable style={({ pressed }) => [
@@ -155,7 +176,7 @@ export default function HomeScreen() {
       {/* Time picker for the add task part  */}
       {showPicker &&
         <DateTimePicker
-          value={selectedTime}
+          value={displayTime}
           mode="time"
           is24Hour={false}
           display="default"
@@ -164,7 +185,7 @@ export default function HomeScreen() {
               setShowPicker(false); // Closes on Android
             }
             if (date) {
-              setSelectedTime(date);
+              setCustomTime(date);
             }
           }}
         />
@@ -179,7 +200,7 @@ export default function HomeScreen() {
           <View style={[styles.cardContainer, item.completed ? styles.cardCompleted : styles.cardActive]}>
 
             <Pressable
-              onPress={() => toggleTask(item.id)}
+              onPress={() => toggleTask(item.id,item.completed)}
               style={({ pressed }) => [
                 styles.checkboxContainer,
                 { opacity: pressed ? 0.6 : 1.0 },
