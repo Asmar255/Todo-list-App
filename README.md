@@ -16,7 +16,7 @@ TaskFlow is a clean, lightweight React Native mobile application designed for pe
 
 - ➕ **Task Creation:** Quickly add tasks with custom text and scheduled times.
 - 🕒 **Integrated Time Picker:** Set exact times for tasks using `@react-native-community/datetimepicker`.
-- 💾 **Real-Time Cloud Storage**: Integrated Firebase Firestore for live database syncing and persistent cloud storage across user sessions.
+- 💾 **Local Data Persistence:** Keeps tasks saved across app restarts using `@react-native-async-storage/async-storage`.
 - ✏️ **In-App Editing:** Update task details and scheduled times through a custom pop-up modal.
 - ✅ **Task Completion:** Toggle task completion status with interactive checkmarks and strike-through visual feedback.
 - 🗑️ **Task Deletion:** Remove completed or obsolete tasks from your schedule.
@@ -46,13 +46,14 @@ Follow these steps to get the project running locally on your device or emulator
 ### Installation
 
 1. **Clone the repository:**
-   ```bash
+
+   
+   bash
    git clone https://github.com/Asmar255/Todo-list-App.git
-   cd Todo-list
+   cd taskflow
 
-```
 
-2. Install dependencies:
+2. Install project dependencies (including Firebase):
 Bash
 
 ```
@@ -60,7 +61,25 @@ npm install
 
 ```
 
-3. Start the development server:
+Note: Running `npm install` automatically installs the `firebase` package along with all other required project dependencies listed in `package.json`.
+
+3. Install Firebase manually (only required for new projects or manual setups): If you are setting up Firebase in a fresh Expo project from scratch, install it using the Expo CLI:
+Bash
+
+```
+npx expo install firebase
+
+```
+
+4. Set up Environment Variables: Create a `.env` file in the root directory by copying `.env.example` and filling in your Firebase project credentials:
+Bash
+
+```
+cp .env.example .env
+
+```
+
+5. Start the development server:
 Bash
 
 ```
@@ -68,7 +87,7 @@ npx expo start
 
 ```
 
-4. Run on device/emulator:
+6. Run on device/emulator:
    * Scan the terminal QR code using your phone camera (iOS) or inside the Expo Go app (Android).
    * Press `a` for Android Emulator or `i` for iOS Simulator in the terminal.
 
@@ -78,9 +97,11 @@ Plaintext
 ```
 TaskFlow/
 ├── assets/            # App icons, splash screens, and screenshots
+├── firebaseConfig.ts  # Firebase SDK initialization and Firestore exports
 ├── screens/
 │   └── HomeScreen.tsx # Core TaskFlow app view, state, and UI logic
 ├── App.tsx            # Main application entry point
+├── .env.example       # Template for required Firebase environment variables
 ├── package.json       # Project dependencies and scripts
 └── README.md          # Project documentation
 
