@@ -21,6 +21,9 @@ TaskFlow is a clean, lightweight React Native mobile application designed for pe
 - ✅ **Task Completion:** Toggle task completion status with interactive checkmarks and strike-through visual feedback.
 - 🗑️ **Task Deletion:** Remove completed or obsolete tasks from your schedule.
 - 📱 **Cross-Platform & Safe Layout:** Built with `react-native-safe-area-context` to adapt across iOS and Android notches.
+- This application includes local push notification scheduling for task reminders:
+* **Production / Standalone Builds:** Full local notification support enabled via `expo-notifications`.
+* **Expo Go Development:** Notification execution is safely bypassed via a service abstraction (`notificationService.ts`) to ensure compatibility with Expo SDK 53+ in Expo Go.
 
 ---
 
