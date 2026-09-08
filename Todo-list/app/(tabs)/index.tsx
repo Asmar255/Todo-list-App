@@ -4,15 +4,19 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from "react";
 import { db } from "@/firebaseConfig";
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy} from "firebase/firestore"; 
-  
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
+import { registerForNotificationsAsync, scheduleTaskNotification } from "../../services/notificationService";
+
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 interface Task {
   id: string;
   text: string;
   time: string;
   completed: boolean;
-  createdAt?:number;
+  createdAt?: number;
 }
 
 export default function HomeScreen() {
@@ -21,7 +25,7 @@ export default function HomeScreen() {
   const [inputText, setinputText] = useState('');
 
   //Time picker states
-  
+
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [customTime, setCustomTime] = useState<Date | null>(null);
   const displayTime = customTime || currentTime;
@@ -41,12 +45,15 @@ export default function HomeScreen() {
   const [showEditPicker, setShowEditPicker] = useState<boolean>(false);
 
 
-  //useEffects for load and save 
- useEffect(() => {
+  //useEffects for Notifications
+  useEffect(() => {
+    registerForNotificationsAsync();
+  }, []);
+
+  useEffect(() => {
     const tasksRef = collection(db, "tasks");
     const q = query(tasksRef, orderBy("createdAt", "desc"));
 
-    // Listens for live updates in the Firestore database
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedTasks: Task[] = snapshot.docs.map((docSnap) => ({
         id: docSnap.id,
@@ -59,7 +66,7 @@ export default function HomeScreen() {
 
     return () => unsubscribe();
   }, []);
-  
+
 
   //time fucntions
   const formatTime = (date: Date): string => {
@@ -67,43 +74,55 @@ export default function HomeScreen() {
   }
 
   //Add task function
-  const addTask = async() => {
+  const addTask = async () => {
     if (!inputText.trim()) return;
-    setinputText('')
-    try{
-      await addDoc(collection(db,"tasks"),{
-      text: inputText,
-      time: formatTime(displayTime),
-      completed: false,
-      createdAt:Date.now()
-      })
-      setCustomTime(null)
+
+    const taskText = inputText;
+    const taskTime = displayTime;
+
+    setinputText('');
+    setCustomTime(null);
+
+    try {
+      await addDoc(collection(db, "tasks"), {
+        text: taskText,
+        time: formatTime(taskTime),
+        completed: false,
+        createdAt: Date.now()
+      });
+      await scheduleTaskNotification(
+        "Task Reminder ⏰",
+        `Time for: "${taskText}"`,
+        taskTime
+      );
+    } catch (error) {
+      console.log("Error adding task", error);
     }
-    catch (error){
-        console.log("Error adding task", error);
-    }
-  }
+  };
 
   //completed task fucntion
-  const toggleTask = async(id:string,currentStatus:boolean)=>{
-    try{
-       const taskRef=doc(db,"tasks",id);
-       await updateDoc(taskRef,{
-        completed:!currentStatus
-       })
+  const toggleTask = async (id: string, currentStatus: boolean, taskText: string) => {
+    try {
+      const taskRef = doc(db, "tasks", id);
+      const newStatus = !currentStatus;
+      await updateDoc(taskRef, {
+        completed: newStatus
+      });
+
+      const statusMessage = newStatus ? `Completed "${taskText}" ✅` : `Marked "${taskText}" as active ⏳`;
+      await scheduleTaskNotification("Task Status Updated", statusMessage);
+    } catch (error) {
+      console.log("Error toggling task status", error);
     }
-    catch (error){
-      console.log("error toggling the task status", error)
-    }
-  }
+  };
 
   //Delete task function
-  const deleteTask = async(id:string)=>{
-    try{
-      await deleteDoc(doc(db,"tasks",id));
+  const deleteTask = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "tasks", id));
     }
-    catch(error){
-      console.log("Error deleeting task",error)
+    catch (error) {
+      console.log("Error deleeting task", error)
     }
   }
 
@@ -112,31 +131,39 @@ export default function HomeScreen() {
     setEditingTask(task)
     setEditText(task.text)
     const [timeStr, modifier] = task.time.split(' ');
-      let [hours, minutes] = timeStr.split(':').map(Number);
-      if (modifier === 'PM' && hours < 12) hours += 12;
-      if (modifier === 'AM' && hours === 12) hours = 0;
-      const parsedDate = new Date();
-      parsedDate.setHours(hours, minutes, 0, 0);
-      setEditTime(parsedDate);
+    let [hours, minutes] = timeStr.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    const parsedDate = new Date();
+    parsedDate.setHours(hours, minutes, 0, 0);
+    setEditTime(parsedDate);
   }
 
   //saving the editing task 
-  const saveEdit = async()=>{
-      if(editingTask && editText.trim()){
-        setEditingTask(null);
-          setEditText('')
-        try{
-          const taskRef=doc(db,"tasks",editingTask.id);
-          await updateDoc(taskRef,{
-              text:editText,
-              time:formatTime(editTime)
-          })
-        }
-        catch(error){
-        console.log("error saving the task ",error)
-        }
+  const saveEdit = async () => {
+    if (editingTask && editText.trim()) {
+      const updatedText = editText;
+      const updatedTime = editTime;
+
+      setEditingTask(null);
+      setEditText('');
+
+      try {
+        const taskRef = doc(db, "tasks", editingTask.id);
+        await updateDoc(taskRef, {
+          text: updatedText,
+          time: formatTime(updatedTime)
+        });
+        await scheduleTaskNotification(
+          "Updated Task Reminder ⏰",
+          `Time for: "${updatedText}"`,
+          updatedTime
+        );
+      } catch (error) {
+        console.log("error saving the task ", error);
       }
-  }
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -159,7 +186,7 @@ export default function HomeScreen() {
         <Pressable style={({ pressed }) => [
           styles.TimePicker, { opacity: pressed ? 0.7 : 1 }
         ]}
-        onPress={() => setShowPicker(true)}
+          onPress={() => setShowPicker(true)}
         >
           <Text>🕒 {formatTime(displayTime)}</Text>
         </Pressable>
@@ -200,7 +227,8 @@ export default function HomeScreen() {
           <View style={[styles.cardContainer, item.completed ? styles.cardCompleted : styles.cardActive]}>
 
             <Pressable
-              onPress={() => toggleTask(item.id,item.completed)}
+              onPress={() => toggleTask(item.id, item.completed, item.text
+              )}
               style={({ pressed }) => [
                 styles.checkboxContainer,
                 { opacity: pressed ? 0.6 : 1.0 },
@@ -318,9 +346,9 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:{
-    flex:1,
-    backgroundColor:'#F5F5F5'
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F5'
   },
   // Header
   header: {
